@@ -11,28 +11,28 @@
 int main() {
     int server_fd, client_fd;
     struct sockaddr_in server_addr, client_addr;
-    char buffer[BUFFER_SIZE] = {0};
+    char buffer[BUFFER_SIZE];
     socklen_t addr_len = sizeof(client_addr);
 
-    // Create socket file descriptor
+    // Create socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
 
-    // Configure server address
+    // Configure server
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY; // Listen on all interfaces
+    server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
 
-    // Bind the socket to the network address and port
+    // Bind
     if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("bind failed");
         close(server_fd);
         exit(EXIT_FAILURE);
     }
 
-    // Start listening for incoming connections
+    // Listen
     if (listen(server_fd, 3) < 0) {
         perror("listen failed");
         close(server_fd);
@@ -41,24 +41,31 @@ int main() {
 
     printf("✅ Server listening on port %d\n", PORT);
 
-    // Accept an incoming connection
-    if ((client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len)) < 0) {
-        perror("accept failed");
-        close(server_fd);
-        exit(EXIT_FAILURE);
+    // Accept clients in a loop
+    while (1) {
+        client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len);
+        if (client_fd < 0) {
+            perror("accept failed");
+            continue;
+        }
+
+        printf("🤝 Connection accepted from %s:%d\n",
+               inet_ntoa(client_addr.sin_addr),
+               ntohs(client_addr.sin_port));
+
+        // Echo loop
+        while (1) {
+            memset(buffer, 0, BUFFER_SIZE);
+            int bytes = read(client_fd, buffer, BUFFER_SIZE);
+            if (bytes <= 0) {
+                printf("👋 Connection closed.\n");
+                close(client_fd);
+                break;
+            }
+            send(client_fd, buffer, bytes, 0);
+        }
     }
 
-    printf("🤝 Connection accepted from %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-
-    // Echo loop
-    while (read(client_fd, buffer, BUFFER_SIZE) > 0) {
-        send(client_fd, buffer, strlen(buffer), 0);
-        memset(buffer, 0, BUFFER_SIZE); // Clear buffer for next read
-    }
-
-    printf("👋 Connection closed.\n");
-    close(client_fd);
     close(server_fd);
-
     return 0;
 }
