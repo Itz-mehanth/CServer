@@ -60,7 +60,7 @@ int main() {
             printf("📩 Request:\n%s\n", buffer);
         }
 
-        // Send HTTP response
+        // Send HTTP response edited
         char response[] =
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/plain\r\n"
